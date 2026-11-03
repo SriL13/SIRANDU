@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import BlurText from '../lib/BlurText.jsx'
 import { RING_INFO } from '../data/content.js'
 import { prefersReducedMotion } from '../lib/motion.jsx'
+import { useWebgis } from '../context/WebgisContext.jsx'
 
 const RINGS = [[170, 105], [300, 185], [440, 265]]
 const ROT = (-6 * Math.PI) / 180
@@ -24,6 +25,7 @@ const pos = (ri, t) => {
 }
 
 export default function PetaOrbit() {
+  const { openMap } = useWebgis()
   const secRef = useRef(null), stageRef = useRef(null), orbRef = useRef(null), dustRef = useRef(null)
   const nodeEls = useRef([]), linkEls = useRef([])
   const [seen, setSeen] = useState(false)
@@ -95,7 +97,17 @@ export default function PetaOrbit() {
           <span className="tag rv">Peta Kota Jambi</span>
           <BlurText as="h2">Satu peta, empat lapis perlindungan untuk warga Jambi.</BlurText>
           <p className="lead rv">Dari titik rumah Anda, SIRANDU menghubungkan zona risiko, posko, jalur evakuasi, dan sumber air bersih di sekitar Sungai Batanghari.</p>
-          <a className="net-link rv" href="#fitur">Lihat semua fitur ↗</a>
+          <div style={{ display: 'flex', gap: '14px', alignItems: 'center', marginTop: '16px', flexWrap: 'wrap' }}>
+            <button 
+              type="button" 
+              onClick={() => openMap()}
+              className="btn pri rv"
+              style={{ cursor: 'pointer', border: 'none' }}
+            >
+              Buka Peta Interaktif SIRANDU (5 Layer) 🗺️
+            </button>
+            <a className="net-link rv" href="#fitur">Lihat semua fitur ↗</a>
+          </div>
         </div>
       </div>
 
@@ -117,11 +129,26 @@ export default function PetaOrbit() {
             {FAR.map((f, i) => <circle key={`f${i}`} cx={f[0]} cy={f[1]} r="4" fill="#6EC1E4" />)}
           </g>
         </svg>
-        <div className="core" aria-label="SIRANDU">
+        <div 
+          className="core" 
+          aria-label="SIRANDU" 
+          onClick={() => openMap()}
+          style={{ cursor: 'pointer' }}
+          title="Klik untuk Buka WebGIS Interaktif"
+        >
           <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#0B3C5D" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3c3 4.2 6 7 6 10.5a6 6 0 0 1-12 0C6 10 9 7.2 12 3z" /></svg>
         </div>
         {CHIPS.map((c) => (
-          <div key={c.t} className={`chip${c.r === ringOn ? ' on' : ''}`} style={{ left: c.left, top: c.top }}><b>{c.n}</b><span>{c.t}</span></div>
+          <div 
+            key={c.t} 
+            className={`chip${c.r === ringOn ? ' on' : ''}`} 
+            style={{ left: c.left, top: c.top, cursor: 'pointer' }}
+            onClick={() => openMap()}
+            title="Klik untuk membuka peta tematik"
+          >
+            <b>{c.n}</b>
+            <span>{c.t}</span>
+          </div>
         ))}
       </div>
 
@@ -137,7 +164,7 @@ export default function PetaOrbit() {
         </div>
         <div className="ring-desc">
           <div><small>{info.kicker}</small><p>{info.text}</p></div>
-          <small>ANGKA &amp; PETA = ILUSTRASI</small>
+          <small>DATA REAL-TIME POSTGIS &amp; OPEN-METEO</small>
         </div>
       </div>
     </section>

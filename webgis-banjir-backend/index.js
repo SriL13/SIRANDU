@@ -36,6 +36,9 @@ app.use(express.static(path.join(__dirname, "public"), { index: false }));
 app.get("/peta", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
+app.get("/admin", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "admin.html"));
+});
 app.get("/demo", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });

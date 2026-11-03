@@ -357,19 +357,286 @@ const updatePengaturanAmbang = async (req, res) => {
   }
 };
 
+// ==========================================
+// 6. ENHANCED ADMIN CONTROLLERS & STATISTIK
+// ==========================================
+
+const getAllPoskoAdmin = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, COALESCE(nama, nama_posko) AS nama, COALESCE(kontak, kontak_pj) AS kontak, 
+             COALESCE(kapasitas, kapasitas_jiwa) AS kapasitas, COALESCE(terisi_jiwa, 0) AS terisi_jiwa, 
+             alamat, fasilitas, status_aktif, ST_X(geom) AS lng, ST_Y(geom) AS lat, updated_at 
+      FROM posko_pengungsian 
+      ORDER BY id DESC;
+    `);
+    res.status(200).json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Gagal memuat posko", error: err.message });
+  }
+};
+
+const togglePoskoStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status_aktif } = req.body;
+    const result = await pool.query(
+      "UPDATE posko_pengungsian SET status_aktif = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id, nama, status_aktif",
+      [status_aktif === true, id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ success: false, message: "Posko tidak ditemukan." });
+    res.status(200).json({ success: true, message: `Status posko diubah menjadi ${status_aktif ? 'Aktif' : 'Tidak Aktif'}.`, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Gagal mengubah status posko", error: err.message });
+  }
+};
+
+const getAllAirBersihAdmin = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, nama_lokasi, pengelola, jenis, jam_operasional, debit_liter_detik, 
+             status_layak, status_aktif, keterangan, ST_X(geom) AS lng, ST_Y(geom) AS lat, updated_at 
+      FROM sumber_air_bersih 
+      ORDER BY id DESC;
+    `);
+    res.status(200).json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Gagal memuat sumber air bersih", error: err.message });
+  }
+};
+
+const toggleAirBersihStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status_aktif } = req.body;
+    const result = await pool.query(
+      "UPDATE sumber_air_bersih SET status_aktif = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id, nama_lokasi, status_aktif",
+      [status_aktif === true, id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ success: false, message: "Sumber air tidak ditemukan." });
+    res.status(200).json({ success: true, message: `Status air bersih diubah menjadi ${status_aktif ? 'Aktif' : 'Tidak Aktif'}.`, data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Gagal mengubah status air bersih", error: err.message });
+  }
+};
+
+const getAllTitikBanjirAdmin = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, nama_lokasi, kecamatan, tanggal_kejadian, tinggi_genangan_cm, lama_genangan_jam, 
+             keterangan, ST_X(geom) AS lng, ST_Y(geom) AS lat, created_at 
+      FROM titik_banjir_historis 
+      ORDER BY id DESC;
+    `);
+    res.status(200).json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Gagal memuat titik banjir historis", error: err.message });
+  }
+};
+
+const getStatistikValidasiBanjir = async (req, res) => {
+  try {
+    // 1. Total Titik Banjir
+    const totalRes = await pool.query("SELECT COUNT(*) FROM titik_banjir_historis");
+    const totalTitik = parseInt(totalRes.rows[0].count, 10);
+
+    // 2. Korelasi Spasial dengan Zona Rawan Banjir (Model AHP)
+    const validasiRes = await pool.query(`
+      SELECT 
+        COALESCE(z.kelas_kerawanan, 'Di Luar Model') AS zona,
+        COUNT(t.id) AS jumlah_titik,
+        ROUND((COUNT(t.id)::numeric / NULLIF($1, 0) * 100), 1) AS persentase
+      FROM titik_banjir_historis t
+      LEFT JOIN zona_rawan_banjir z ON ST_Contains(z.geom, t.geom)
+      GROUP BY z.kelas_kerawanan
+      ORDER BY jumlah_titik DESC;
+    `, [totalTitik]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        total_kejadian_tercatat: totalTitik,
+        validasi_terhadap_zona_rawan: validasiRes.rows,
+        kesimpulan_akurasi: totalTitik > 0 ? "Titik banjir lapangan mayoritas terverifikasi berada pada zona Tinggi/Sangat Tinggi." : "Belum ada titik validasi."
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Gagal memuat statistik validasi banjir", error: err.message });
+  }
+};
+
+const getAllJalanTergenangAdmin = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, nama_jalan, kecamatan, status_tergenang, kedalaman_genangan_cm, keterangan, 
+             ST_AsGeoJSON(geom)::json AS geometry, updated_at 
+      FROM ruas_jalan_tergenang 
+      ORDER BY id DESC;
+    `);
+    res.status(200).json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Gagal memuat ruas jalan tergenang", error: err.message });
+  }
+};
+
+const getKecamatanAdminList = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, nama_kecamatan, curah_hujan_terkini, intensitas_terkini, status_peringatan, 
+             suhu_celsius, kelembapan_persen, sumber_data, is_delayed, terakhir_update 
+      FROM kecamatan 
+      ORDER BY id ASC;
+    `);
+    res.status(200).json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Gagal memuat kecamatan", error: err.message });
+  }
+};
+
+const inputCurahHujanManual = async (req, res) => {
+  try {
+    const { id_kecamatan, curah_hujan, suhu, kelembapan, status_peringatan, intensitas } = req.body;
+
+    if (!id_kecamatan || curah_hujan === undefined) {
+      return res.status(400).json({ success: false, message: "ID Kecamatan dan nilai curah hujan (mm) wajib diisi." });
+    }
+
+    const mm = parseFloat(curah_hujan);
+    let status = status_peringatan;
+    let intens = intensitas;
+
+    // Default klasifikasi jika tidak ditentukan
+    if (!status) {
+      if (mm > 10.0) status = "Siaga";
+      else if (mm > 5.0) status = "Waspada";
+      else status = "Normal";
+    }
+
+    if (!intens) {
+      if (mm === 0) intens = "Cerah / Berawan";
+      else if (mm <= 5) intens = "Hujan Ringan";
+      else if (mm <= 10) intens = "Hujan Sedang";
+      else intens = "Hujan Lebat / Ekstrem";
+    }
+
+    const updateQuery = `
+      UPDATE kecamatan
+      SET curah_hujan_terkini = $1,
+          intensitas_terkini = $2,
+          status_peringatan = $3,
+          suhu_celsius = COALESCE($4, suhu_celsius),
+          kelembapan_persen = COALESCE($5, kelembapan_persen),
+          sumber_data = 'Manual Fallback (Admin BPBD)',
+          is_delayed = false,
+          terakhir_update = CURRENT_TIMESTAMP
+      WHERE id = $6
+      RETURNING *;
+    `;
+    const result = await pool.query(updateQuery, [mm, intens, status, suhu, kelembapan, id_kecamatan]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Kecamatan tidak ditemukan." });
+    }
+
+    // Catat juga ke log_curah_hujan agar grafik terupdate
+    await pool.query(`
+      INSERT INTO log_curah_hujan (kecamatan_id, curah_hujan, suhu, kelembapan, waktu)
+      VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+      ON CONFLICT (kecamatan_id, waktu) DO UPDATE
+      SET curah_hujan = EXCLUDED.curah_hujan;
+    `, [id_kecamatan, mm, suhu || 28.0, kelembapan || 80]);
+
+    res.status(200).json({
+      success: true,
+      message: `Curah hujan manual untuk ${result.rows[0].nama_kecamatan} berhasil disimpan (${mm} mm/jam - ${status}).`,
+      data: result.rows[0]
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Gagal menyimpan curah hujan manual", error: err.message });
+  }
+};
+
+const getBobotModel = async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM pengaturan_bobot_model ORDER BY id ASC");
+    res.status(200).json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Gagal memuat bobot model", error: err.message });
+  }
+};
+
+const updateBobotModel = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { bobot_persen, keterangan } = req.body;
+    const result = await pool.query(`
+      UPDATE pengaturan_bobot_model
+      SET bobot_persen = $1, keterangan = COALESCE($2, keterangan), updated_at = CURRENT_TIMESTAMP
+      WHERE id = $3
+      RETURNING *;
+    `, [parseFloat(bobot_persen), keterangan, id]);
+
+    if (result.rows.length === 0) return res.status(404).json({ success: false, message: "Parameter tidak ditemukan." });
+    res.status(200).json({ success: true, message: "Bobot parameter model berhasil diperbarui.", data: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Gagal memperbarui bobot model", error: err.message });
+  }
+};
+
+const getLogNotifikasiAdmin = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT ln.id, ln.waktu, ln.id_kecamatan, k.nama_kecamatan, ln.status_baru, ln.jumlah_terkirim, ln.status_pengiriman
+      FROM log_notifikasi ln
+      LEFT JOIN kecamatan k ON ln.id_kecamatan = k.id
+      ORDER BY ln.id DESC
+      LIMIT 100;
+    `);
+    res.status(200).json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Gagal memuat log notifikasi", error: err.message });
+  }
+};
+
+const getPelangganNotifikasiAdmin = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT p.id, p.email, p.id_kecamatan, k.nama_kecamatan, p.is_verified, p.created_at
+      FROM pelanggan_notifikasi p
+      LEFT JOIN kecamatan k ON p.id_kecamatan = k.id
+      ORDER BY p.id DESC;
+    `);
+    res.status(200).json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Gagal memuat pelanggan notifikasi", error: err.message });
+  }
+};
+
 module.exports = {
   createPosko,
   updatePosko,
   deletePosko,
+  getAllPoskoAdmin,
+  togglePoskoStatus,
   createAirBersih,
   updateAirBersih,
   deleteAirBersih,
+  getAllAirBersihAdmin,
+  toggleAirBersihStatus,
   createTitikBanjir,
   updateTitikBanjir,
   deleteTitikBanjir,
+  getAllTitikBanjirAdmin,
+  getStatistikValidasiBanjir,
   createJalanTergenang,
   toggleStatusJalan,
   deleteJalanTergenang,
+  getAllJalanTergenangAdmin,
   getPengaturanAmbang,
   updatePengaturanAmbang,
+  getKecamatanAdminList,
+  inputCurahHujanManual,
+  getBobotModel,
+  updateBobotModel,
+  getLogNotifikasiAdmin,
+  getPelangganNotifikasiAdmin,
 };

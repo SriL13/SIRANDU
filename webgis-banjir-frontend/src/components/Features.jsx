@@ -4,9 +4,11 @@ import { FEATURES } from '../data/content.js'
 import { BACKGROUNDS } from './FeatureBackgrounds.jsx'
 import { gsap, prefersReducedMotion } from '../lib/motion.jsx'
 import { useGSAP } from '../lib/useGSAP.js'
+import { useWebgis } from '../context/WebgisContext.jsx'
 
 /** Kartu accordion: satu kartu melebar, lainnya menyempit dengan judul vertikal. */
 export default function Features() {
+  const { openMap } = useWebgis()
   const [open, setOpen] = useState(0)
   const accRef = useRef(null)
   const hover = useRef(null)
@@ -22,6 +24,16 @@ export default function Features() {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(i) }
     const to = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? (i + 1) % n : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? (i + n - 1) % n : null
     if (to !== null) { e.preventDefault(); setOpen(to); accRef.current.children[to].focus() }
+  }
+
+  const handleLinkClick = (e, link) => {
+    if (link === 'Atur notifikasi') {
+      const el = document.getElementById('mulai')
+      if (el) el.scrollIntoView({ behavior: 'smooth' })
+      return
+    }
+    e.preventDefault()
+    openMap()
   }
 
   return (
@@ -42,7 +54,14 @@ export default function Features() {
                 <div className="body">
                   <h3>{f.title}</h3>
                   <p>{f.desc}</p>
-                  <a className="pl" href="#fitur"><span>{f.link}</span><i>↗</i></a>
+                  <button 
+                    type="button"
+                    className="pl" 
+                    onClick={(e) => handleLinkClick(e, f.link)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', font: 'inherit' }}
+                  >
+                    <span>{f.link}</span><i>↗</i>
+                  </button>
                   <small>DI DALAM FITUR</small>
                   <div className="chips">{f.chips.map((c) => <span key={c}>{c}</span>)}</div>
                 </div>

@@ -2,6 +2,8 @@ import { useEffect } from 'react'
 import { SmoothScroll, useLenis, prefersReducedMotion } from './lib/motion.jsx'
 import { useReveal } from './lib/useReveal.js'
 import { useMagnet } from './lib/Magnet.js'
+import { WebgisProvider } from './context/WebgisContext.jsx'
+import WebgisModal from './components/WebgisModal.jsx'
 import Nav from './components/Nav.jsx'
 import Progress from './components/Progress.jsx'
 import Hero from './components/Hero.jsx'
@@ -54,10 +56,15 @@ function Page() {
       <Team />
       <Footer />
       <Toast />
+      <WebgisModal />
     </>
   )
 }
 
 export default function App() {
-  return <SmoothScroll><Page /></SmoothScroll>
+  return (
+    <WebgisProvider>
+      <SmoothScroll><Page /></SmoothScroll>
+    </WebgisProvider>
+  )
 }

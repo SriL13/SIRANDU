@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { clamp, prefersReducedMotion } from '../lib/motion.jsx'
+import { useWebgis } from '../context/WebgisContext.jsx'
 
 const LINES = [['tahu', 'risiko,'], ['siap', 'bertindak.']]
 
 export default function Hero() {
+  const { openMap, ringkasan } = useWebgis()
   const heroRef = useRef(null)
   const canvasRef = useRef(null)
   const lnRefs = useRef([])
@@ -84,11 +86,18 @@ export default function Hero() {
           <div className="hero-row" ref={rowRef}>
             <p>SIRANDU adalah sistem informasi rawan bencana yang memetakan zona risiko, memantau curah hujan, dan menuntun warga Kota Jambi ke posko serta air bersih.</p>
             <div className="right">
-              <div className="pill-stat">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 7 7 .8-5.2 4.8 1.5 7.2L12 18l-6.3 3.8 1.5-7.2L2 9.8 9 9z" /></svg>
-                <b>5 kelas</b> curah hujan <i /> pantau <b>24/7</b>
+              <div className="pill-stat" title="Status Real-time 11 Kecamatan Kota Jambi">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="#10b981"><circle cx="12" cy="12" r="7" /></svg>
+                <b>{ringkasan?.normal ?? 11}/{ringkasan?.total_kecamatan ?? 11}</b> normal <i /> pantau <b>24/7</b>
               </div>
-              <a className="btn white" href="#peta">Lihat peta <span className="arr">↗</span></a>
+              <button 
+                type="button"
+                className="btn white" 
+                onClick={() => openMap()}
+                style={{ background: '#ffffff', color: '#0B3C5D', border: 'none', cursor: 'pointer' }}
+              >
+                Buka WebGIS <span className="arr">↗</span>
+              </button>
             </div>
           </div>
         </div>
