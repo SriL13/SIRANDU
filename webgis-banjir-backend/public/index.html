@@ -1199,6 +1199,33 @@
     loadSungaiDanBuffer();
     loadPosko("Semua");
     loadAirBersih("Semua");
+
+    // URL Query Parameter Support (untuk interaksi dari React frontend)
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramKec = urlParams.get('kecamatan');
+    const paramLat = urlParams.get('lat');
+    const paramLng = urlParams.get('lng');
+    if (paramLat && paramLng) {
+      document.getElementById('testLat').value = paramLat;
+      document.getElementById('testLng').value = paramLng;
+      setTimeout(() => {
+        document.getElementById('btnCekRisiko')?.click();
+      }, 800);
+    }
+    if (paramKec) {
+      setTimeout(() => {
+        const sel = document.getElementById('selectKecamatanFilter');
+        if (sel) {
+          for (let i = 0; i < sel.options.length; i++) {
+            if (sel.options[i].value.toLowerCase() === paramKec.toLowerCase()) {
+              sel.selectedIndex = i;
+              sel.dispatchEvent(new Event('change'));
+              break;
+            }
+          }
+        }
+      }, 700);
+    }
   </script>
 </body>
 </html>
