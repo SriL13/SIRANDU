@@ -3,143 +3,345 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SIRANDU - WebGIS & Pemantauan Banjir 11 Kecamatan Kota Jambi</title>
+  <title>SIRANDU — WebGIS Interaktif & Pemantauan Banjir Kota Jambi</title>
   
+  <!-- Inter Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- Chart.js CDN untuk Grafik Curah Hujan 24 Jam (F04) -->
+  <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <style>
+    :root {
+      --primary: #0B3C5D;
+      --secondary: #1D6FA3;
+      --accent: #6EC1E4;
+      --tint: #E6F3FA;
+      --ink: #071f30;
+      --muted: #8aa9be;
+      --line: rgba(110, 193, 228, 0.2);
+      --card-bg: rgba(11, 60, 93, 0.45);
+      --card-border: rgba(110, 193, 228, 0.22);
+      --glass: rgba(7, 31, 48, 0.78);
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 50% 0%, #0d4b73 0%, #0B3C5D 35%, #06263b 70%, #041724 100%);
+      background-attachment: fixed;
+      color: #f1f5f9;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Glass Panels */
+    .glass-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+    }
+
+    .glass-inner {
+      background: rgba(4, 21, 33, 0.55);
+      border: 1px solid rgba(110, 193, 228, 0.16);
+      border-radius: 14px;
+    }
+
+    /* Glowing Eyebrow Tag */
+    .eyebrow-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .ping-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      position: relative;
+    }
+
+    .ping-dot::after {
+      content: "";
+      position: absolute;
+      inset: -3px;
+      border-radius: 50%;
+      border: 2px solid var(--accent);
+      animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+
+    @keyframes ping {
+      0% { transform: scale(0.9); opacity: 1; }
+      80%, 100% { transform: scale(2.2); opacity: 0; }
+    }
+
+    /* Buttons */
+    .btn-accent {
+      background: var(--accent);
+      color: #0B3C5D;
+      font-weight: 700;
+      border-radius: 999px;
+      transition: all 0.25s cubic-bezier(.2,.7,.2,1);
+      box-shadow: 0 4px 14px rgba(110, 193, 228, 0.25);
+    }
+    .btn-accent:hover {
+      background: #ffffff;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(110, 193, 228, 0.4);
+    }
+
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(110, 193, 228, 0.3);
+      color: #ffffff;
+      border-radius: 999px;
+      font-weight: 600;
+      transition: all 0.25s;
+    }
+    .btn-ghost:hover {
+      background: rgba(110, 193, 228, 0.18);
+      border-color: var(--accent);
+      color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    /* Inputs */
+    .input-dark {
+      background: rgba(4, 21, 33, 0.65);
+      border: 1px solid rgba(110, 193, 228, 0.25);
+      border-radius: 999px;
+      color: #ffffff;
+      transition: all 0.2s;
+    }
+    .input-dark:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(110, 193, 228, 0.25);
+    }
+
+    /* Map styling */
     #map {
-      height: 520px;
-      border-radius: 0.75rem;
+      height: 540px;
+      border-radius: 18px;
       z-index: 10;
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.4);
     }
+
+    /* Leaflet Controls & Popups Dark Customization */
+    .leaflet-bar {
+      border: 1px solid rgba(110, 193, 228, 0.3) !important;
+      border-radius: 10px !important;
+      overflow: hidden;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3) !important;
+    }
+    .leaflet-bar a {
+      background: rgba(7, 31, 48, 0.9) !important;
+      color: #6EC1E4 !important;
+      border-bottom: 1px solid rgba(110, 193, 228, 0.2) !important;
+    }
+    .leaflet-bar a:hover {
+      background: #0B3C5D !important;
+      color: #ffffff !important;
+    }
+
     .leaflet-popup-content-wrapper {
-      border-radius: 0.5rem;
-      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      background: rgba(7, 31, 48, 0.95) !important;
+      backdrop-filter: blur(12px) !important;
+      border: 1px solid rgba(110, 193, 228, 0.35) !important;
+      border-radius: 14px !important;
+      color: #f1f5f9 !important;
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5) !important;
     }
-    /* Label Nama Kecamatan Persis Seperti di Peta Referensi */
+    .leaflet-popup-tip {
+      background: rgba(7, 31, 48, 0.95) !important;
+      border: 1px solid rgba(110, 193, 228, 0.35) !important;
+    }
+    .leaflet-container a.leaflet-popup-close-button {
+      color: #6EC1E4 !important;
+      padding: 6px !important;
+    }
+    .leaflet-container a.leaflet-popup-close-button:hover {
+      color: #ffffff !important;
+    }
+
+    /* Label Nama Kecamatan */
     .kecamatan-label {
-      background: rgba(255, 255, 255, 0.88);
-      border: 1px solid #ffffff;
-      border-radius: 4px;
-      color: #1e293b;
+      background: rgba(7, 31, 48, 0.9);
+      border: 1px solid #6EC1E4;
+      border-radius: 6px;
+      color: #ffffff;
       font-weight: 700;
       font-size: 11px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.18);
-      padding: 1px 6px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      padding: 2px 8px;
       pointer-events: none;
       white-space: nowrap;
     }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(4, 21, 33, 0.4);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(110, 193, 228, 0.35);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--accent);
+    }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-800 font-sans antialiased">
+<body>
   
-  <!-- Navbar -->
-  <header class="bg-blue-600 text-white shadow-md sticky top-0 z-50">
+  <!-- Header Navbar Glassmorphism -->
+  <header class="sticky top-0 z-50 bg-[#071f30]/85 backdrop-blur-md border-b border-[#6EC1E4]/20 shadow-lg">
     <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-      <div class="flex items-center space-x-2">
-        <span class="text-2xl">🌊</span>
+      
+      <!-- Brand Logo -->
+      <a href="/" class="flex items-center space-x-3 group">
+        <img src="/logo.png" alt="SIRANDU" class="w-9 h-9 object-contain drop-shadow" onerror="this.src='/logo-mark.png';">
         <div>
-          <h1 class="text-xl font-bold tracking-tight">SIRANDU - Smart Environment Kota Jambi</h1>
-          <p class="text-xs text-blue-100">Sistem Informasi Rawan Bencana Terpadu & Pemantauan 11 Kecamatan</p>
+          <div class="flex items-center gap-2">
+            <span class="text-xl font-extrabold tracking-tight text-white group-hover:text-[#6EC1E4] transition">SIRANDU</span>
+            <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-[#6EC1E4]/20 text-[#6EC1E4] border border-[#6EC1E4]/30">WebGIS</span>
+          </div>
+          <p class="text-[11px] text-[#8aa9be]">Sistem Informasi Rawan Bencana · Kota Jambi</p>
         </div>
-      </div>
+      </a>
+
+      <!-- Action & Endpoint Badges -->
       <div class="flex items-center space-x-2">
-        <a href="/api/cuaca" target="_blank" class="text-xs bg-blue-700 hover:bg-blue-800 text-white px-3 py-1.5 rounded-md font-mono transition">
-          🌧️ /api/cuaca
+        <a href="http://localhost:5173" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white/10 hover:bg-[#6EC1E4] text-white hover:text-[#0B3C5D] border border-white/20 transition">
+          <span>← Beranda</span>
         </a>
-        <a href="/api/peta/sungai-buffer" target="_blank" class="text-xs bg-blue-700 hover:bg-blue-800 text-white px-3 py-1.5 rounded-md font-mono transition">
-          🌊 /api/sungai-buffer
+        <a href="/api/cuaca" target="_blank" class="text-xs px-2.5 py-1.5 rounded-full bg-[#0B3C5D] hover:bg-[#1D6FA3] text-[#6EC1E4] border border-[#6EC1E4]/30 font-mono transition hidden md:inline-block">
+          🌧️ Cuaca
         </a>
-        <a href="/api/posko/geojson" target="_blank" class="text-xs bg-blue-700 hover:bg-blue-800 text-white px-3 py-1.5 rounded-md font-mono transition">
-          🏕️ /api/posko
+        <a href="/api/peta/sungai-buffer" target="_blank" class="text-xs px-2.5 py-1.5 rounded-full bg-[#0B3C5D] hover:bg-[#1D6FA3] text-[#6EC1E4] border border-[#6EC1E4]/30 font-mono transition hidden md:inline-block">
+          🌊 Buffer
         </a>
-        <a href="/api/air-bersih/geojson" target="_blank" class="text-xs bg-blue-700 hover:bg-blue-800 text-white px-3 py-1.5 rounded-md font-mono transition">
-          💧 /api/air-bersih
+        <a href="/api/posko/geojson" target="_blank" class="text-xs px-2.5 py-1.5 rounded-full bg-[#0B3C5D] hover:bg-[#1D6FA3] text-[#6EC1E4] border border-[#6EC1E4]/30 font-mono transition hidden lg:inline-block">
+          🏕️ Posko
+        </a>
+        <a href="/api/air-bersih/geojson" target="_blank" class="text-xs px-2.5 py-1.5 rounded-full bg-[#0B3C5D] hover:bg-[#1D6FA3] text-[#6EC1E4] border border-[#6EC1E4]/30 font-mono transition hidden lg:inline-block">
+          💧 Air Bersih
         </a>
       </div>
+
     </div>
   </header>
 
   <!-- Main Container -->
   <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
 
-    <!-- SEKSI 1: PROSES A (PEMANTAUAN CUACA 11 KECAMATAN & GRAFIK 24 JAM F04 & F05) -->
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
-      <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+    <!-- SEKSI 1: PEMANTAUAN TERJADWAL CUACA 11 KECAMATAN & GRAFIK 24 JAM (F04 & F05) -->
+    <div class="glass-card p-5 space-y-4">
+      
+      <!-- Top Bar Seksi 1 -->
+      <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 border-b border-[#6EC1E4]/15 pb-4">
         <div>
-          <div class="flex items-center gap-2">
-            <span class="text-xl">🌧️</span>
-            <h2 class="text-lg font-bold text-slate-800">Pemantauan Terjadwal Cuaca 11 Kecamatan (F04 & F05)</h2>
-          </div>
-          <p class="text-xs text-slate-500 mt-0.5">
-            Scheduler <code>node-cron</code> otomatis setiap 1 jam menarik data Open-Meteo API & mengklasifikasi intensitas hujan standar BMKG.
+          <span class="eyebrow-tag">
+            <i class="ping-dot"></i> Pemantauan Terjadwal (F04 & F05)
+          </span>
+          <h2 class="text-xl font-bold text-white mt-1">Status Cuaca & Hujan 11 Kecamatan Kota Jambi</h2>
+          <p class="text-xs text-[#8aa9be] mt-0.5">
+            Scheduler <code>node-cron</code> otomatis setiap 1 jam mengambil data Open-Meteo & mengklasifikasikan intensitas sesuai standar BMKG.
           </p>
         </div>
         <div class="flex items-center gap-2">
-          <span id="badgeFallbackResilience" class="text-xs px-2.5 py-1 rounded-full font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
-            🟢 Status API: Real-Time
+          <span id="badgeFallbackResilience" class="text-xs px-3 py-1.5 rounded-full font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+            🟢 Status API: Real-Time Open-Meteo
           </span>
-          <button id="btnSyncCuacaNow" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center gap-1.5">
-            ⚡ Sync Cuaca Sekarang
+          <button id="btnSyncCuacaNow" class="btn-accent px-4 py-1.5 text-xs flex items-center gap-1.5">
+            <span>⚡ Sync Cuaca Sekarang</span>
           </button>
         </div>
       </div>
 
-      <!-- Ringkasan Status 11 Kecamatan -->
+      <!-- Ringkasan Status 11 Kecamatan Grid -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-lg text-emerald-900">
-          <div class="text-[11px] font-semibold text-emerald-700">STATUS NORMAL (0 - 5 mm)</div>
-          <div class="text-2xl font-black mt-1" id="countKecNormal">11</div>
-          <div class="text-[10px] text-emerald-600">Kondisi cerah s/d hujan ringan</div>
+        
+        <div class="glass-inner p-3.5 border-emerald-500/30 bg-emerald-500/10">
+          <div class="text-[11px] font-bold text-emerald-300 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span> NORMAL (0 - 5 mm)
+          </div>
+          <div class="text-3xl font-extrabold text-white mt-1" id="countKecNormal">11</div>
+          <div class="text-[11px] text-emerald-200/70 mt-0.5">Cerah s/d hujan ringan</div>
         </div>
-        <div class="bg-amber-50 border border-amber-200 p-3 rounded-lg text-amber-900">
-          <div class="text-[11px] font-semibold text-amber-700">STATUS WASPADA (5.1 - 10 mm)</div>
-          <div class="text-2xl font-black mt-1" id="countKecWaspada">0</div>
-          <div class="text-[10px] text-amber-600">Hujan sedang, drainase dipantau</div>
+
+        <div class="glass-inner p-3.5 border-amber-500/30 bg-amber-500/10">
+          <div class="text-[11px] font-bold text-amber-300 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-amber-400"></span> WASPADA (5.1 - 10 mm)
+          </div>
+          <div class="text-3xl font-extrabold text-white mt-1" id="countKecWaspada">0</div>
+          <div class="text-[11px] text-amber-200/70 mt-0.5">Hujan sedang, pantau drainase</div>
         </div>
-        <div class="bg-rose-50 border border-rose-200 p-3 rounded-lg text-rose-900">
-          <div class="text-[11px] font-semibold text-rose-700">STATUS SIAGA (&gt; 10 mm)</div>
-          <div class="text-2xl font-black mt-1" id="countKecSiaga">0</div>
-          <div class="text-[10px] text-rose-600">Hujan lebat / ekstrem, potensi genangan</div>
+
+        <div class="glass-inner p-3.5 border-rose-500/30 bg-rose-500/10">
+          <div class="text-[11px] font-bold text-rose-300 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-rose-400"></span> SIAGA (> 10 mm)
+          </div>
+          <div class="text-3xl font-extrabold text-white mt-1" id="countKecSiaga">0</div>
+          <div class="text-[11px] text-rose-200/70 mt-0.5">Hujan lebat / potensi genangan</div>
         </div>
-        <div class="bg-slate-50 border border-slate-200 p-3 rounded-lg text-slate-800">
-          <div class="text-[11px] font-semibold text-slate-600">FALLBACK RESILIENCE</div>
-          <div class="text-2xl font-black mt-1 text-slate-700" id="countKecDelayed">0</div>
-          <div class="text-[10px] text-slate-500">Data tertunda jika API timeout</div>
+
+        <div class="glass-inner p-3.5 border-cyan-500/30 bg-cyan-500/10">
+          <div class="text-[11px] font-bold text-cyan-300 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-cyan-400"></span> RESILIENCE FALLBACK
+          </div>
+          <div class="text-3xl font-extrabold text-white mt-1" id="countKecDelayed">0</div>
+          <div class="text-[11px] text-cyan-200/70 mt-0.5">Data tertunda jika API timeout</div>
         </div>
+
       </div>
 
-      <!-- Grid 2 Kolom: Daftar 11 Kecamatan & Grafik 24 Jam -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 pt-2">
+      <!-- Grid 2 Kolom: Daftar 11 Kecamatan & Canvas Grafik 24 Jam -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 pt-1">
         
         <!-- Kolom Kiri: 11 Kartu Kecamatan -->
         <div class="lg:col-span-5 space-y-2">
           <div class="flex items-center justify-between">
-            <h3 class="text-xs font-bold text-slate-600 uppercase tracking-wider">Pilih Kecamatan (Klik untuk Grafik):</h3>
-            <span class="text-[11px] text-blue-600 font-semibold" id="infoKecTerpilih">Kota Baru</span>
+            <h3 class="text-xs font-bold text-[#6EC1E4] uppercase tracking-wider">Pilih Kecamatan (Klik untuk Grafik):</h3>
+            <span class="text-xs text-white font-bold bg-[#6EC1E4]/20 px-2.5 py-0.5 rounded-full border border-[#6EC1E4]/30" id="infoKecTerpilih">Kota Baru</span>
           </div>
           <div id="listKecamatanContainer" class="space-y-1.5 max-h-[360px] overflow-y-auto pr-1">
-            <div class="p-3 text-xs text-slate-400 text-center">Memuat data 11 kecamatan...</div>
+            <div class="p-4 text-xs text-[#8aa9be] text-center">Memuat data 11 kecamatan...</div>
           </div>
         </div>
 
         <!-- Kolom Kanan: Canvas Grafik 24 Jam (Chart.js) -->
-        <div class="lg:col-span-7 bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col justify-between">
+        <div class="lg:col-span-7 glass-inner p-4 flex flex-col justify-between">
           <div>
-            <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center justify-between mb-3 border-b border-[#6EC1E4]/15 pb-2">
               <div>
-                <h3 class="text-sm font-bold text-slate-800" id="chartTitle">Grafik Curah Hujan 24 Jam: Kota Baru</h3>
-                <p class="text-[11px] text-slate-500" id="chartSubtitle">Sumber: Open-Meteo Weather API | Klasifikasi BMKG</p>
+                <h3 class="text-sm font-bold text-white flex items-center gap-1.5" id="chartTitle">
+                  <span>📊</span> Grafik Curah Hujan 24 Jam: Kota Baru
+                </h3>
+                <p class="text-[11px] text-[#8aa9be]" id="chartSubtitle">Sumber: Open-Meteo Weather API | Standar BMKG</p>
               </div>
-              <span id="badgeChartStatus" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-100 text-emerald-800">
+              <span id="badgeChartStatus" class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                 Status: Normal
               </span>
             </div>
@@ -149,17 +351,18 @@
             </div>
           </div>
 
-          <div class="mt-3 pt-2 border-t border-slate-200 flex flex-wrap items-center justify-between text-[11px] text-slate-500">
+          <div class="mt-3 pt-2.5 border-t border-[#6EC1E4]/15 flex flex-wrap items-center justify-between text-[11px] text-[#8aa9be]">
             <div class="flex items-center gap-3">
-              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span> Curah Hujan (mm/jam)</span>
-              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span> Ambang Waspada (5 mm)</span>
-              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> Ambang Siaga (10 mm)</span>
+              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#6EC1E4] inline-block shadow"></span> Curah Hujan (mm/jam)</span>
+              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span> Waspada (5 mm)</span>
+              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> Siaga (10 mm)</span>
             </div>
             <div id="chartLastUpdate" class="text-slate-400 font-mono text-[10px]">Update: -</div>
           </div>
         </div>
 
       </div>
+
     </div>
 
     <!-- SEKSI 2: PETA INTERAKTIF SPASIAL DENGAN 5 LAYER DAN FILTER KECAMATAN -->
@@ -167,21 +370,24 @@
       
       <!-- Kolom Kiri: Peta Leaflet & Kontrol Layer (2 Col) -->
       <div class="lg:col-span-2 space-y-4">
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <div class="glass-card p-4">
           
           <!-- Bar Kontrol Filter Kecamatan & Reload -->
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3 border-b border-slate-100 pb-3">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3 border-b border-[#6EC1E4]/15 pb-3">
             <div>
-              <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+              <span class="eyebrow-tag">
+                <i class="ping-dot"></i> WebGIS Spasial
+              </span>
+              <h2 class="text-base font-bold text-white flex items-center gap-2 mt-0.5">
                 <span>🗺️</span> Peta Spasial Kota Jambi & 5 Layer Tematik
               </h2>
-              <p class="text-xs text-slate-500">Garis batas administrasi, bahaya luapan sungai Batanghari, elevasi, dan mitigasi darurat.</p>
+              <p class="text-xs text-[#8aa9be]">Garis batas administrasi, bahaya luapan Sungai Batanghari, elevasi, posko, dan air bersih.</p>
             </div>
 
             <!-- Dropdown Filter Kecamatan -->
             <div class="flex items-center gap-2">
-              <label for="selectKecamatanFilter" class="text-xs font-bold text-slate-700 whitespace-nowrap">Filter Kec:</label>
-              <select id="selectKecamatanFilter" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500">
+              <label for="selectKecamatanFilter" class="text-xs font-bold text-[#6EC1E4] whitespace-nowrap">Filter Kec:</label>
+              <select id="selectKecamatanFilter" class="text-xs bg-[#071f30] border border-[#6EC1E4]/40 rounded-full px-3 py-1.5 font-semibold text-white focus:ring-2 focus:ring-[#6EC1E4] outline-none">
                 <option value="Semua">🌐 Semua Kecamatan (11)</option>
                 <option value="Kota Baru">1. Kota Baru</option>
                 <option value="Alam Barajo">2. Alam Barajo</option>
@@ -195,92 +401,92 @@
                 <option value="Pelayangan">10. Pelayangan</option>
                 <option value="Jambi Timur">11. Jambi Timur</option>
               </select>
-              <button id="btnReloadMap" class="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs rounded-lg border border-slate-300 transition" title="Reload Peta">
+              <button id="btnReloadMap" class="p-1.5 bg-white/10 hover:bg-[#6EC1E4] text-white hover:text-[#0B3C5D] text-xs rounded-full border border-white/20 transition" title="Reload Peta">
                 🔄
               </button>
             </div>
           </div>
 
           <!-- BAR CHECKBOX TOGGLE 5 LAYER PETA -->
-          <div class="bg-blue-50/70 border border-blue-200 rounded-lg p-2.5 mb-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
-            <span class="font-bold text-blue-900 flex items-center gap-1">
+          <div class="bg-[#041724]/75 border border-[#6EC1E4]/25 rounded-xl p-2.5 mb-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+            <span class="font-bold text-[#6EC1E4] flex items-center gap-1">
               <span>🎛️</span> Layer Aktif:
             </span>
             
             <!-- Checkbox Batas Administrasi -->
-            <label class="inline-flex items-center gap-1.5 cursor-pointer font-medium text-slate-700 hover:text-blue-700">
-              <input type="checkbox" id="layerToggleBatas" checked class="rounded text-blue-600 focus:ring-blue-500">
+            <label class="inline-flex items-center gap-1.5 cursor-pointer font-medium text-slate-300 hover:text-white">
+              <input type="checkbox" id="layerToggleBatas" checked class="rounded text-[#6EC1E4] focus:ring-[#6EC1E4]">
               <span>🗺️ Batas Wilayah</span>
             </label>
 
             <!-- Checkbox Layer 1: Curah Hujan -->
-            <label class="inline-flex items-center gap-1.5 cursor-pointer font-medium text-slate-700 hover:text-blue-700">
-              <input type="checkbox" id="layerToggleCuaca" checked class="rounded text-blue-600 focus:ring-blue-500">
+            <label class="inline-flex items-center gap-1.5 cursor-pointer font-medium text-slate-300 hover:text-white">
+              <input type="checkbox" id="layerToggleCuaca" checked class="rounded text-[#6EC1E4] focus:ring-[#6EC1E4]">
               <span>🌧️ L1: Curah Hujan</span>
             </label>
 
             <!-- Checkbox Layer 2: Ketinggian Tanah -->
-            <label class="inline-flex items-center gap-1.5 cursor-pointer font-medium text-slate-700 hover:text-blue-700">
-              <input type="checkbox" id="layerToggleElevasi" checked class="rounded text-blue-600 focus:ring-blue-500">
+            <label class="inline-flex items-center gap-1.5 cursor-pointer font-medium text-slate-300 hover:text-white">
+              <input type="checkbox" id="layerToggleElevasi" checked class="rounded text-[#6EC1E4] focus:ring-[#6EC1E4]">
               <span>⛰️ L2: Ketinggian Tanah</span>
             </label>
 
             <!-- Checkbox Layer 3: Dekat Sungai (Buffer Bahaya) -->
-            <label class="inline-flex items-center gap-1.5 cursor-pointer font-medium text-slate-700 hover:text-blue-700">
-              <input type="checkbox" id="layerToggleSungai" checked class="rounded text-blue-600 focus:ring-blue-500">
+            <label class="inline-flex items-center gap-1.5 cursor-pointer font-medium text-slate-300 hover:text-white">
+              <input type="checkbox" id="layerToggleSungai" checked class="rounded text-[#6EC1E4] focus:ring-[#6EC1E4]">
               <span>🌊 L3: Dekat Sungai (Buffer)</span>
             </label>
 
             <!-- Checkbox Layer 4: Posko & Titik Kumpul -->
-            <label class="inline-flex items-center gap-1.5 cursor-pointer font-medium text-slate-700 hover:text-blue-700">
-              <input type="checkbox" id="layerTogglePosko" checked class="rounded text-blue-600 focus:ring-blue-500">
-              <span>🏕️ L4: Posko & Titik Kumpul</span>
+            <label class="inline-flex items-center gap-1.5 cursor-pointer font-medium text-slate-300 hover:text-white">
+              <input type="checkbox" id="layerTogglePosko" checked class="rounded text-[#6EC1E4] focus:ring-[#6EC1E4]">
+              <span>🏕️ L4: Posko & Kumpul</span>
             </label>
 
             <!-- Checkbox Layer 5: Sumber Air Bersih -->
-            <label class="inline-flex items-center gap-1.5 cursor-pointer font-medium text-slate-700 hover:text-blue-700">
-              <input type="checkbox" id="layerToggleAir" checked class="rounded text-blue-600 focus:ring-blue-500">
-              <span>💧 L5: Sumber Air Bersih</span>
+            <label class="inline-flex items-center gap-1.5 cursor-pointer font-medium text-slate-300 hover:text-white">
+              <input type="checkbox" id="layerToggleAir" checked class="rounded text-[#6EC1E4] focus:ring-[#6EC1E4]">
+              <span>💧 L5: Air Bersih</span>
             </label>
           </div>
           
           <!-- Kontainer Leaflet Map -->
-          <div id="map" class="shadow-inner"></div>
+          <div id="map"></div>
 
           <!-- Legenda Komprehensif 5 Layer Peta -->
-          <div class="mt-3 text-xs bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2">
-            <div class="font-bold text-slate-700 flex items-center justify-between">
-              <span>📋 Legenda Simbol & Tingkat Bahaya 5 Layer:</span>
-              <span class="text-[11px] text-slate-400 font-normal italic">💡 Klik di peta untuk cek risiko lokasi</span>
+          <div class="mt-3 text-xs glass-inner p-3 space-y-2">
+            <div class="font-bold text-white flex items-center justify-between border-b border-[#6EC1E4]/15 pb-1.5">
+              <span class="flex items-center gap-1.5">📋 Legenda Simbol & Tingkat Bahaya 5 Layer</span>
+              <span class="text-[11px] text-[#6EC1E4] font-normal italic">💡 Klik di peta untuk cek risiko lokasi</span>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1 text-[11px]">
               
               <!-- Kolom Legenda Sungai & Buffer -->
-              <div class="bg-white p-2 rounded border border-slate-200 space-y-1">
-                <div class="font-bold text-slate-800">🌊 L3: Zona Buffer Sungai Batanghari</div>
-                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-red-600 opacity-90 inline-block"></span> <b>0 - 150m:</b> Bahaya Ekstrem (Bantaran)</div>
-                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-orange-500 opacity-80 inline-block"></span> <b>150 - 400m:</b> Siaga Luapan Sungai</div>
-                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-yellow-400 opacity-80 inline-block"></span> <b>400 - 800m:</b> Waspada Genangan Pasang</div>
-                <div class="flex items-center gap-1.5"><span class="w-4 h-1 bg-sky-600 inline-block"></span> Garis Aliran Sungai Batanghari</div>
+              <div class="bg-black/25 p-2 rounded-lg border border-[#6EC1E4]/15 space-y-1">
+                <div class="font-bold text-[#6EC1E4]">🌊 L3: Buffer Sungai Batanghari</div>
+                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-red-600 opacity-90 inline-block shadow"></span> <b>0 - 150m:</b> Bahaya Ekstrem</div>
+                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-orange-500 opacity-80 inline-block shadow"></span> <b>150 - 400m:</b> Siaga Luapan</div>
+                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-yellow-400 opacity-80 inline-block shadow"></span> <b>400 - 800m:</b> Waspada Pasang</div>
+                <div class="flex items-center gap-1.5"><span class="w-4 h-1 bg-sky-400 inline-block"></span> Garis Aliran Batanghari</div>
               </div>
 
               <!-- Kolom Legenda Elevasi Tanah -->
-              <div class="bg-white p-2 rounded border border-slate-200 space-y-1">
-                <div class="font-bold text-slate-800">⛰️ L2: Ketinggian Tanah (DEMNAS)</div>
-                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-rose-500 inline-block"></span> <b>&lt; 12 mdpl:</b> Rendah (Cekungan Rawan)</div>
-                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-amber-500 inline-block"></span> <b>12 - 25 mdpl:</b> Sedang (Terkendali)</div>
-                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-emerald-500 inline-block"></span> <b>&gt; 25 mdpl:</b> Tinggi (Bebas Genangan)</div>
-                <div class="flex items-center gap-1.5"><span class="w-4 h-1.5 bg-slate-400 border border-white inline-block rounded-sm"></span> <b>Garis Putih:</b> Batas Wilayah 11 Kecamatan</div>
+              <div class="bg-black/25 p-2 rounded-lg border border-[#6EC1E4]/15 space-y-1">
+                <div class="font-bold text-[#6EC1E4]">⛰️ L2: Ketinggian Tanah (DEMNAS)</div>
+                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-rose-500 inline-block shadow"></span> <b>&lt; 12 mdpl:</b> Rendah (Cekungan)</div>
+                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-amber-500 inline-block shadow"></span> <b>12 - 25 mdpl:</b> Sedang (Terkendali)</div>
+                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-emerald-500 inline-block shadow"></span> <b>&gt; 25 mdpl:</b> Tinggi (Aman)</div>
+                <div class="flex items-center gap-1.5"><span class="w-4 h-1.5 bg-white border border-slate-600 inline-block rounded-sm"></span> <b>Garis Putih:</b> Batas 11 Kecamatan</div>
               </div>
 
               <!-- Kolom Legenda Titik Mitigasi -->
-              <div class="bg-white p-2 rounded border border-slate-200 space-y-1">
-                <div class="font-bold text-slate-800">🏕️ L1, L4 & L5: Titik Mitigasi & Cuaca</div>
-                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-blue-600 inline-block"></span> <b>L1:</b> Titik Curah Hujan BMKG (11 Kec)</div>
-                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-rose-600 inline-block"></span> <b>L4:</b> Posko Evakuasi & Titik Kumpul</div>
-                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-cyan-500 inline-block"></span> <b>L5:</b> Sumber Air Bersih PDAM / BPBD</div>
-                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span> 📍 Posisi Anda (Simulasi Rute)</div>
+              <div class="bg-black/25 p-2 rounded-lg border border-[#6EC1E4]/15 space-y-1">
+                <div class="font-bold text-[#6EC1E4]">🏕️ L1, L4 & L5: Titik Mitigasi</div>
+                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-blue-500 inline-block shadow"></span> <b>L1:</b> Titik Curah Hujan BMKG</div>
+                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-rose-500 inline-block shadow"></span> <b>L4:</b> Posko Evakuasi & Titik Kumpul</div>
+                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-cyan-400 inline-block shadow"></span> <b>L5:</b> Sumber Air Bersih PDAM</div>
+                <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-400 inline-block shadow"></span> 📍 Posisi Anda (Simulasi Rute)</div>
               </div>
 
             </div>
@@ -291,50 +497,57 @@
 
       <!-- Kolom Kanan: Tes Cek Risiko Lokasi & Rute (1 Col) -->
       <div class="space-y-4">
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-          <h2 class="text-base font-bold text-slate-800 mb-1">📍 Cek Risiko & Navigasi Rute</h2>
-          <p class="text-xs text-slate-500 mb-3">Uji endpoint <code>POST /api/peta/cek-lokasi</code> dan <code>/api/evakuasi/rute</code>.</p>
+        
+        <!-- Box Cek Risiko & Navigasi -->
+        <div class="glass-card p-5">
+          <span class="eyebrow-tag">
+            <i class="ping-dot"></i> Interaksi Spasial
+          </span>
+          <h2 class="text-base font-bold text-white mt-0.5 mb-1">📍 Cek Risiko & Rute Evakuasi</h2>
+          <p class="text-xs text-[#8aa9be] mb-3">Klik di peta atau masukkan koordinat lokasi warga:</p>
 
-          <div class="space-y-2.5">
+          <div class="space-y-3">
             <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-1">Latitude</label>
-              <input type="text" id="testLat" value="-1.5930" placeholder="-1.5930 (Bisa paste lat, lng langsung)" class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded font-mono">
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Latitude</label>
+              <input type="text" id="testLat" value="-1.5930" placeholder="-1.5930" class="w-full px-3.5 py-2 text-xs input-dark font-mono">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-1">Longitude</label>
-              <input type="text" id="testLng" value="103.5850" placeholder="103.5850" class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded font-mono">
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Longitude</label>
+              <input type="text" id="testLng" value="103.5850" placeholder="103.5850" class="w-full px-3.5 py-2 text-xs input-dark font-mono">
             </div>
 
             <div class="grid grid-cols-2 gap-2 pt-1">
-              <button id="btnCekRisiko" class="w-full py-2 px-3 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-lg transition">
-                🔍 Cek Risiko
+              <button id="btnCekRisiko" class="btn-ghost py-2.5 px-3 text-xs flex items-center justify-center gap-1.5">
+                <span>🔍 Cek Risiko</span>
               </button>
-              <button id="btnHitungRute" class="w-full py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition">
-                🚗 Rute Evakuasi
+              <button id="btnHitungRute" class="btn-accent py-2.5 px-3 text-xs flex items-center justify-center gap-1.5">
+                <span>🚗 Rute Evakuasi</span>
               </button>
             </div>
           </div>
 
-          <div id="resultBox" class="mt-3 p-3 rounded-lg text-xs bg-slate-50 border border-slate-200 hidden">
+          <div id="resultBox" class="mt-3.5 p-3 rounded-xl text-xs glass-inner hidden">
             <!-- Hasil tes JSON -->
           </div>
         </div>
 
         <!-- Box Dokumentasi Endpoint -->
-        <div class="bg-blue-50 border border-blue-200 p-4 rounded-xl text-xs text-blue-900 space-y-1.5">
-          <div class="font-bold">📚 Endpoint Siap Pakai untuk Frontend React:</div>
-          <ul class="space-y-1 font-mono text-[11px] text-blue-800">
-            <li>• <b>GET</b> /api/peta/batas-administrasi?kecamatan=...</li>
-            <li>• <b>GET</b> /geojson/kecamatan_kota_jambi.geojson (Resmi)</li>
-            <li>• <b>GET</b> /api/cuaca (Layer 1)</li>
-            <li>• <b>GET</b> /api/peta/elevasi (Layer 2)</li>
-            <li>• <b>GET</b> /api/peta/sungai-buffer (Layer 3)</li>
-            <li>• <b>GET</b> /api/posko/geojson?kecamatan=... (Layer 4)</li>
-            <li>• <b>GET</b> /api/air-bersih/geojson?kecamatan=... (Layer 5)</li>
-            <li>• <b>POST</b> /api/peta/cek-lokasi</li>
-            <li>• <b>POST</b> /api/evakuasi/rute</li>
+        <div class="glass-inner p-4 text-xs space-y-2 border-[#6EC1E4]/30">
+          <div class="font-bold text-[#6EC1E4] flex items-center gap-1.5">
+            <span>📚</span> Endpoint Terhubung ke React Frontend:
+          </div>
+          <ul class="space-y-1 font-mono text-[11px] text-slate-300">
+            <li>• <b class="text-[#6EC1E4]">GET</b> /api/peta/batas-administrasi</li>
+            <li>• <b class="text-[#6EC1E4]">GET</b> /api/cuaca (Layer 1)</li>
+            <li>• <b class="text-[#6EC1E4]">GET</b> /api/peta/elevasi (Layer 2)</li>
+            <li>• <b class="text-[#6EC1E4]">GET</b> /api/peta/sungai-buffer (Layer 3)</li>
+            <li>• <b class="text-[#6EC1E4]">GET</b> /api/posko/geojson (Layer 4)</li>
+            <li>• <b class="text-[#6EC1E4]">GET</b> /api/air-bersih/geojson (Layer 5)</li>
+            <li>• <b class="text-[#6EC1E4]">GET</b> /api/cek-lokasi?lat=...&lng=...</li>
+            <li>• <b class="text-[#6EC1E4]">GET</b> /api/evakuasi/rute?lat=...&lng=...</li>
           </ul>
         </div>
+
       </div>
 
     </div>
@@ -362,11 +575,13 @@
 
     // Inisialisasi Map Leaflet di Kota Jambi
     const map = L.map('map').setView([-1.6101, 103.6131], 12);
+    
+    // Basemap OSM dengan kontras baik
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap | SIRANDU UNH Jambi'
     }).addTo(map);
 
-    // Inisialisasi Layer Group untuk masing-masing layer
+    // Inisialisasi Layer Group
     const layerBatas = L.layerGroup().addTo(map);
     const layerCuaca = L.layerGroup().addTo(map);       // Layer 1
     const layerElevasi = L.layerGroup().addTo(map);     // Layer 2
@@ -379,14 +594,14 @@
     let dataKecamatanGlobal = [];
     let idKecamatanAktif = 1;
 
-    // Helper warna status
+    // Helper status badge dark theme
     function getStatusBadge(status, isDelayed) {
-      let bg = "bg-emerald-100 text-emerald-800 border-emerald-300";
-      if (status === "Siaga") bg = "bg-rose-100 text-rose-800 border-rose-300";
-      else if (status === "Waspada") bg = "bg-amber-100 text-amber-800 border-amber-300";
+      let bg = "bg-emerald-500/20 text-emerald-300 border-emerald-500/40";
+      if (status === "Siaga") bg = "bg-rose-500/20 text-rose-300 border-rose-500/40";
+      else if (status === "Waspada") bg = "bg-amber-500/20 text-amber-300 border-amber-500/40";
 
-      return `<span class="px-2 py-0.5 text-[10px] font-bold rounded border ${bg}">${status}</span>` + 
-             (isDelayed ? ` <span class="px-1.5 py-0.5 text-[9px] font-bold rounded bg-amber-100 text-amber-700">Delayed</span>` : '');
+      return `<span class="px-2 py-0.5 text-[10px] font-bold rounded-full border ${bg}">${status}</span>` + 
+             (isDelayed ? ` <span class="px-1.5 py-0.5 text-[9px] font-bold rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">Delayed</span>` : '');
     }
 
     // Palet Warna Wilayah Kecamatan Persis Seperti di Peta Referensi
@@ -398,15 +613,20 @@
       "pasar jambi": "#9b8778",     // Khaki Bronze Tan
       "jambi timur": "#b6a0dc",     // Ungu Lavender
       "jelutung": "#f4a261",        // Oranye Peach
-      "alam barajo": "#7fa9e8",     // Biru Muda Soft
-      "kota baru": "#727885",       // Slate Grey
-      "kotabaru": "#727885",
-      "jambi selatan": "#7bc8a4",   // Hijau Mint
-      "paal merah": "#858d99"       // Charcoal Grey
+      "jambi selatan": "#48cae4",   // Biru Langit Cyan
+      "paal merah": "#6c757d",      // Abu-abu Steel
+      "alam barajo": "#809bce",     // Biru Slate Periwinkle
+      "kota baru": "#5c677d"        // Abu-abu Gelap Charcoal
     };
 
+    function getWarnaKecamatan(nama) {
+      if (!nama) return "#3b82f6";
+      const cleaned = nama.toLowerCase().trim();
+      return WARNA_KECAMATAN_MAP[cleaned] || "#3b82f6";
+    }
+
     // ==========================================
-    // 1. LOAD LAYER BATAS ADMINISTRASI KOTA JAMBI (CHOROPLETH + OUTLINE PUTIH)
+    // 1. LOAD BATAS ADMINISTRASI 11 KECAMATAN
     // ==========================================
     async function loadBatasAdministrasi(kecamatan = "Semua") {
       try {
@@ -422,58 +642,53 @@
         if (geojson && geojson.features) {
           const batasGeoJSON = L.geoJSON(geojson, {
             style: function(feature) {
-              const p = feature.properties;
-              const namaKey = (p.nama_kecamatan || '').toLowerCase();
-              const fillColor = p.warna_wilayah || WARNA_KECAMATAN_MAP[namaKey] || '#60a5fa';
+              const nama = feature.properties.nama_kecamatan;
+              const warna = getWarnaKecamatan(nama);
               return {
-                color: "#ffffff",            // Garis batas luar warna putih bersih persis foto
-                weight: 2.8,                 // Tebal garis putih tegas
-                opacity: 1,                  // Solid tidak tembus pandang
-                fillColor: fillColor,        // Warna unik per kecamatan
-                fillOpacity: 0.58,           // Transparan lembut agar jalan/kelurahan terlihat
-                lineCap: 'round',
-                lineJoin: 'round'
+                color: "#ffffff",
+                weight: 2.5,
+                opacity: 0.95,
+                fillColor: warna,
+                fillOpacity: 0.55
               };
             },
             onEachFeature: function(feature, layer) {
               const p = feature.properties;
-              const namaKey = (p.nama_kecamatan || '').toLowerCase();
+              
+              if (p.centroid_lat && p.centroid_lng) {
+                const labelIcon = L.divIcon({
+                  className: 'kecamatan-label',
+                  html: `<span>${p.nama_kecamatan}</span>`,
+                  iconSize: null,
+                  iconAnchor: [30, 10]
+                });
+                const labelMarker = L.marker([p.centroid_lat, p.centroid_lng], { icon: labelIcon });
+                layerBatas.addLayer(labelMarker);
+              }
 
-              // Label Teks Nama Kecamatan di tengah poligon persis foto
-              layer.bindTooltip(`<b>${p.nama_kecamatan}</b>`, {
-                permanent: true,
-                direction: 'center',
-                className: 'kecamatan-label'
-              });
-
-              // Popup informasi detail saat diklik
               layer.bindPopup(`
                 <div class="p-1 font-sans">
-                  <div class="flex items-center gap-1.5 mb-1">
-                    <span class="w-3 h-3 rounded-full inline-block border border-white" style="background-color: ${p.warna_wilayah || WARNA_KECAMATAN_MAP[namaKey] || '#3b82f6'}"></span>
-                    <h4 class="font-bold text-sm text-slate-800">Kecamatan ${p.nama_kecamatan}</h4>
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="w-3 h-3 rounded-full" style="background:${getWarnaKecamatan(p.nama_kecamatan)}"></span>
+                    <h3 class="font-bold text-sm text-white">Kecamatan ${p.nama_kecamatan}</h3>
                   </div>
-                  <hr class="my-1 border-slate-200">
-                  <div class="text-xs space-y-1">
-                    <div>Kelurahan Contoh: <b>${p.nama_kelurahan || '-'}</b></div>
-                    <div>Status Pantau: <b>${p.status_siaga || 'Normal'}</b></div>
+                  <div class="text-[10px] text-[#6EC1E4]">Batas Administrasi Resmi Kota Jambi</div>
+                  <hr class="my-1.5 border-[#6EC1E4]/20">
+                  <div class="text-xs space-y-1 text-slate-200">
+                    <div>Luas Wilayah: <b>${p.luas_km2 ? p.luas_km2 + ' km²' : '-'}</b></div>
+                    <div>Curah Hujan: <b>${p.curah_hujan_terkini || '0.00'} mm/jam</b></div>
+                    <div>Status: <b>${p.status_peringatan || 'Normal'}</b></div>
                   </div>
-                  <button onclick="pilihKecamatanByNama('${p.nama_kecamatan}')" class="mt-2 w-full py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[11px] font-semibold">
-                    🔍 Fokus Wilayah Ini
+                  <button onclick="window.filterPetaKeKecamatan('${p.nama_kecamatan}')" class="btn-accent mt-2 w-full py-1 text-[11px]">
+                    Fokus ke Kecamatan Ini
                   </button>
                 </div>
               `);
 
-              // Hover efek highlight
               layer.on({
                 mouseover: function(e) {
-                  const target = e.target;
-                  target.setStyle({
-                    weight: 3.8,
-                    color: '#ffffff',
-                    fillOpacity: 0.82
-                  });
-                  target.bringToFront();
+                  const l = e.target;
+                  l.setStyle({ weight: 4, color: '#6EC1E4', fillOpacity: 0.75 });
                 },
                 mouseout: function(e) {
                   batasGeoJSON.resetStyle(e.target);
@@ -507,10 +722,10 @@
 
         const badgeFallback = document.getElementById('badgeFallbackResilience');
         if (ringkasan.data_tertunda_fallback > 0) {
-          badgeFallback.className = "text-xs px-2.5 py-1 rounded-full font-semibold bg-amber-100 text-amber-800 border border-amber-200";
+          badgeFallback.className = "text-xs px-3 py-1.5 rounded-full font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30";
           badgeFallback.textContent = `🟡 Fallback Mode: ${ringkasan.data_tertunda_fallback} Kec. Delayed`;
         } else {
-          badgeFallback.className = "text-xs px-2.5 py-1 rounded-full font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200";
+          badgeFallback.className = "text-xs px-3 py-1.5 rounded-full font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
           badgeFallback.textContent = "🟢 Status API: Real-Time Open-Meteo";
         }
 
@@ -535,20 +750,22 @@
       items.forEach((k) => {
         const isSelected = k.id === idKecamatanAktif;
         const card = document.createElement('div');
-        card.className = `p-2.5 rounded-lg border text-xs cursor-pointer transition flex items-center justify-between ${
-          isSelected ? 'bg-blue-50 border-blue-400 shadow-sm' : 'bg-white hover:bg-slate-50 border-slate-200'
+        card.className = `p-2.5 rounded-xl border text-xs cursor-pointer transition flex items-center justify-between ${
+          isSelected 
+            ? 'bg-[#6EC1E4]/20 border-[#6EC1E4] shadow-md shadow-[#6EC1E4]/10' 
+            : 'bg-white/5 hover:bg-white/10 border-white/10'
         }`;
 
         card.innerHTML = `
           <div>
-            <div class="font-bold text-slate-800 text-[13px]">${k.nama_kecamatan}</div>
-            <div class="text-[11px] text-slate-500 mt-0.5">
-              🌧️ ${k.curah_hujan_terkini} mm/jam | ${k.intensitas_terkini}
+            <div class="font-bold text-white text-[13px]">${k.nama_kecamatan}</div>
+            <div class="text-[11px] text-[#8aa9be] mt-0.5">
+              🌧️ ${k.curah_hujan_terkini} mm/jam · ${k.intensitas_terkini}
             </div>
           </div>
           <div class="text-right">
             <div>${getStatusBadge(k.status_peringatan, k.is_delayed)}</div>
-            <div class="text-[10px] text-slate-400 mt-1">${k.suhu_celsius}°C | ${k.kelembapan_persen}%</div>
+            <div class="text-[10px] text-slate-400 mt-1">${k.suhu_celsius}°C · ${k.kelembapan_persen}%</div>
           </div>
         `;
 
@@ -573,7 +790,7 @@
         const lat = parseFloat(k.latitude);
         const lng = parseFloat(k.longitude);
 
-        const markerColor = k.status_peringatan === "Siaga" ? "#ef4444" : (k.status_peringatan === "Waspada" ? "#f59e0b" : "#3b82f6");
+        const markerColor = k.status_peringatan === "Siaga" ? "#ef4444" : (k.status_peringatan === "Waspada" ? "#f59e0b" : "#38bdf8");
 
         const marker = L.circleMarker([lat, lng], {
           radius: 9,
@@ -586,16 +803,16 @@
 
         marker.bindPopup(`
           <div class="p-1 font-sans">
-            <h4 class="font-bold text-sm text-slate-800">🌧️ Kecamatan ${k.nama_kecamatan}</h4>
-            <div class="text-[10px] text-slate-400">Layer 1: Pemantauan Curah Hujan BMKG</div>
-            <hr class="my-1 border-slate-200">
-            <div class="text-xs space-y-1">
+            <h4 class="font-bold text-sm text-white">🌧️ Kecamatan ${k.nama_kecamatan}</h4>
+            <div class="text-[10px] text-[#6EC1E4]">Layer 1: Pemantauan Curah Hujan BMKG</div>
+            <hr class="my-1.5 border-[#6EC1E4]/20">
+            <div class="text-xs space-y-1 text-slate-200">
               <div>Curah Hujan: <b>${k.curah_hujan_terkini} mm/jam</b> (${k.intensitas_terkini})</div>
               <div>Suhu / Lembap: <b>${k.suhu_celsius}°C / ${k.kelembapan_persen}%</b></div>
               <div>Status: <b>${k.status_peringatan}</b></div>
               <div class="text-[10px] text-slate-400 mt-1">Update: ${k.terakhir_update}</div>
             </div>
-            <button onclick="pilihKecamatanById(${k.id})" class="mt-2 w-full py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[11px] font-semibold">
+            <button onclick="pilihKecamatanById(${k.id})" class="btn-accent mt-2 w-full py-1 text-[11px]">
               📊 Buka Grafik 24 Jam
             </button>
           </div>
@@ -626,7 +843,7 @@
       loadGrafikKecamatan(id);
     };
 
-    window.pilihKecamatanByNama = function(nama) {
+    window.filterPetaKeKecamatan = function(nama) {
       const kec = dataKecamatanGlobal.find(x => x.nama_kecamatan.toLowerCase() === nama.toLowerCase());
       if (kec) {
         window.pilihKecamatanById(kec.id);
@@ -658,12 +875,12 @@
               const p = feature.properties;
               layer.bindPopup(`
                 <div class="p-1 font-sans">
-                  <h4 class="font-bold text-xs text-slate-800">⛰️ Layer 2: Ketinggian Tanah (DEMNAS)</h4>
-                  <div class="text-xs mt-1 space-y-0.5">
+                  <h4 class="font-bold text-xs text-white">⛰️ Layer 2: Ketinggian Tanah (DEMNAS)</h4>
+                  <div class="text-xs mt-1 space-y-0.5 text-slate-200">
                     <div>Wilayah: <b>${p.kelurahan || '-'}, ${p.kecamatan || '-'}</b></div>
-                    <div>Kelas Elevasi: <b class="text-indigo-600">${p.kelas_elevasi}</b></div>
+                    <div>Kelas Elevasi: <b class="text-[#6EC1E4]">${p.kelas_elevasi}</b></div>
                     <div>Rata-rata: <b>${p.rata_elevasi_mdpl} mdpl</b></div>
-                    <div class="text-[10px] text-slate-500 mt-1">${p.keterangan}</div>
+                    <div class="text-[10px] text-slate-400 mt-1">${p.keterangan}</div>
                   </div>
                 </div>
               `);
@@ -686,7 +903,6 @@
         const geojson = await res.json();
 
         if (geojson && geojson.features) {
-          // Pisahkan buffer dan garis sungai agar garis sungai selalu di atas
           const buffers = geojson.features.filter(f => f.properties.kategori_layer === 'buffer_sungai');
           const sungai = geojson.features.filter(f => f.properties.kategori_layer === 'garis_sungai');
 
@@ -706,8 +922,8 @@
             });
             bufLayer.bindPopup(`
               <div class="p-1 font-sans">
-                <h4 class="font-bold text-xs text-slate-800">🌊 L3: Buffer Sungai Batanghari</h4>
-                <div class="text-xs mt-1">
+                <h4 class="font-bold text-xs text-white">🌊 L3: Buffer Sungai Batanghari</h4>
+                <div class="text-xs mt-1 text-slate-200">
                   <div>Zona: <b>${p.zona_buffer}</b></div>
                   <div>Tingkat Bahaya: <b style="color:${p.warna}">${p.tingkat_bahaya}</b></div>
                   <div>Jarak Bantaran: <b>${p.jarak_meter} meter</b></div>
@@ -722,17 +938,17 @@
             const p = f.properties;
             const lineLayer = L.geoJSON(f, {
               style: {
-                color: p.warna || '#0284c7',
+                color: p.warna || '#38bdf8',
                 weight: p.weight || 4,
                 opacity: 0.95
               }
             });
             lineLayer.bindPopup(`
               <div class="p-1 font-sans">
-                <h4 class="font-bold text-xs text-sky-800">🌊 ${p.nama_sungai}</h4>
-                <div class="text-xs mt-1">
+                <h4 class="font-bold text-xs text-sky-400">🌊 ${p.nama_sungai}</h4>
+                <div class="text-xs mt-1 text-slate-300">
                   <div>Tipe: <b>${p.tipe}</b></div>
-                  <div class="text-[10px] text-slate-500">Aliran sungai utama Kota Jambi yang bermuara ke Laut Cina Selatan.</div>
+                  <div class="text-[10px] text-slate-400">Aliran sungai utama Kota Jambi yang bermuara ke Selat Berhala.</div>
                 </div>
               </div>
             `);
@@ -759,12 +975,15 @@
         const geojson = await res.json();
 
         if (geojson && geojson.features) {
-          geojson.features.forEach(f => {
+          geojson.features.forEach((f) => {
             const p = f.properties;
-            const coords = f.geometry.coordinates; // [lng, lat]
-            const marker = L.circleMarker([coords[1], coords[0]], {
+            const coords = f.geometry.coordinates;
+            const lat = coords[1];
+            const lng = coords[0];
+
+            const marker = L.circleMarker([lat, lng], {
               radius: 8,
-              fillColor: p.warna_marker || '#ef4444',
+              fillColor: '#ef4444',
               color: '#ffffff',
               weight: 2,
               opacity: 1,
@@ -773,19 +992,22 @@
 
             marker.bindPopup(`
               <div class="p-1 font-sans">
-                <div class="flex items-center gap-1">
+                <div class="flex items-center gap-1.5 mb-1">
                   <span class="text-base">🏕️</span>
-                  <h4 class="font-bold text-xs text-rose-700">${p.nama_posko}</h4>
+                  <h4 class="font-bold text-xs text-rose-400">${p.nama_posko}</h4>
                 </div>
-                <div class="text-[10px] text-slate-400">Layer 4: Posko Evakuasi & Titik Kumpul</div>
-                <hr class="my-1 border-slate-200">
-                <div class="text-xs space-y-1">
+                <div class="text-[10px] text-slate-400">Layer 4: Posko & Titik Kumpul</div>
+                <hr class="my-1.5 border-[#6EC1E4]/20">
+                <div class="text-xs space-y-1 text-slate-200">
                   <div>Alamat: ${p.alamat}</div>
-                  <div>Wilayah: <b>${p.kelurahan || '-'}, ${p.kecamatan || '-'}</b></div>
-                  <div>Sisa Kapasitas: <b>${p.sisa_kapasitas} / ${p.kapasitas_jiwa} Jiwa</b></div>
-                  <div>Fasilitas: <b>${p.fasilitas || 'Tenda, Dapur Umum, P3K'}</b></div>
-                  <div class="text-blue-600 font-semibold text-[11px]">📞 ${p.kontak_pj || 'BPBD Jambi'}</div>
+                  <div>Kapasitas Total: <b>${p.kapasitas_total} Jiwa</b></div>
+                  <div>Tersedia: <b class="text-emerald-400">${p.kapasitas_tersisa} Jiwa</b></div>
+                  <div>Status: <b class="text-emerald-400">${p.status_aktif ? 'Aktif Siaga' : 'Non-aktif'}</b></div>
+                  <div class="text-[10px] text-[#6EC1E4] mt-1">📞 Kontak: ${p.kontak_darurat || '-'}</div>
                 </div>
+                <button onclick="document.getElementById('testLat').value='${lat}';document.getElementById('testLng').value='${lng}';" class="btn-accent mt-2 w-full py-1 text-[11px]">
+                  Gunakan Titik Ini
+                </button>
               </div>
             `);
 
@@ -812,12 +1034,15 @@
         const geojson = await res.json();
 
         if (geojson && geojson.features) {
-          geojson.features.forEach(f => {
+          geojson.features.forEach((f) => {
             const p = f.properties;
-            const coords = f.geometry.coordinates; // [lng, lat]
-            const marker = L.circleMarker([coords[1], coords[0]], {
-              radius: 7,
-              fillColor: p.warna_marker || '#06b6d4',
+            const coords = f.geometry.coordinates;
+            const lat = coords[1];
+            const lng = coords[0];
+
+            const marker = L.circleMarker([lat, lng], {
+              radius: 8,
+              fillColor: '#06b6d4',
               color: '#ffffff',
               weight: 2,
               opacity: 1,
@@ -826,18 +1051,18 @@
 
             marker.bindPopup(`
               <div class="p-1 font-sans">
-                <div class="flex items-center gap-1">
+                <div class="flex items-center gap-1.5 mb-1">
                   <span class="text-base">💧</span>
-                  <h4 class="font-bold text-xs text-cyan-800">${p.nama_titik}</h4>
+                  <h4 class="font-bold text-xs text-cyan-400">${p.nama_titik}</h4>
                 </div>
                 <div class="text-[10px] text-slate-400">Layer 5: Sumber Air Bersih Darurat</div>
-                <hr class="my-1 border-slate-200">
-                <div class="text-xs space-y-1">
+                <hr class="my-1.5 border-[#6EC1E4]/20">
+                <div class="text-xs space-y-1 text-slate-200">
                   <div>Alamat: ${p.alamat}</div>
                   <div>Pengelola: <b>${p.pengelola || 'PDAM Tirta Mayang'}</b></div>
                   <div>Debit: <b>${p.debit_liter_detik} L/detik</b></div>
-                  <div>Status: <b class="text-emerald-600">${p.status_layak ? 'Layak Konsumsi' : 'Perlu Sterilisasi'}</b></div>
-                  <div class="text-[10px] text-slate-500">Operasional: ${p.jam_operasional}</div>
+                  <div>Status: <b class="text-emerald-400">${p.status_layak ? 'Layak Konsumsi' : 'Perlu Sterilisasi'}</b></div>
+                  <div class="text-[10px] text-slate-400">Operasional: ${p.jam_operasional}</div>
                 </div>
               </div>
             `);
@@ -862,15 +1087,15 @@
         const k = json.kecamatan;
         const logs = json.grafik_24_jam;
 
-        document.getElementById('chartTitle').textContent = `Grafik Curah Hujan 24 Jam: ${k.nama_kecamatan}`;
-        document.getElementById('chartSubtitle').textContent = `Sumber: ${k.sumber_data} | Intensitas Terkini: ${k.intensitas_terkini}`;
+        document.getElementById('chartTitle').innerHTML = `<span>📊</span> Grafik Curah Hujan 24 Jam: ${k.nama_kecamatan}`;
+        document.getElementById('chartSubtitle').textContent = `Sumber: ${k.sumber_data} · Intensitas Terkini: ${k.intensitas_terkini}`;
         document.getElementById('chartLastUpdate').textContent = `Update: ${k.terakhir_update} ${k.is_delayed ? '(Delayed Fallback)' : ''}`;
 
         const badgeStatus = document.getElementById('badgeChartStatus');
         badgeStatus.textContent = `Status: ${k.status_peringatan}`;
-        badgeStatus.className = k.status_peringatan === "Siaga" ? "px-2.5 py-1 text-xs font-bold rounded-lg bg-rose-100 text-rose-800" :
-                               (k.status_peringatan === "Waspada" ? "px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-100 text-amber-800" :
-                                "px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-100 text-emerald-800");
+        badgeStatus.className = k.status_peringatan === "Siaga" ? "px-2.5 py-1 text-xs font-bold rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40" :
+                               (k.status_peringatan === "Waspada" ? "px-2.5 py-1 text-xs font-bold rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40" :
+                                "px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40");
 
         const labels = logs.map(x => x.jam_label || x.waktu_lengkap.split(' ')[1]);
         const dataValues = logs.map(x => parseFloat(x.curah_hujan));
@@ -888,13 +1113,13 @@
               {
                 label: 'Curah Hujan (mm/jam)',
                 data: dataValues,
-                borderColor: '#2563eb',
-                backgroundColor: 'rgba(37, 99, 235, 0.15)',
+                borderColor: '#6EC1E4',
+                backgroundColor: 'rgba(110, 193, 228, 0.15)',
                 fill: true,
                 tension: 0.35,
-                borderWidth: 2,
+                borderWidth: 2.2,
                 pointRadius: 3,
-                pointBackgroundColor: '#1d4ed8'
+                pointBackgroundColor: '#6EC1E4'
               }
             ]
           },
@@ -914,12 +1139,14 @@
             scales: {
               y: {
                 beginAtZero: true,
-                title: { display: true, text: 'Curah Hujan (mm/jam)', font: { size: 10 } },
-                suggestedMax: 15
+                title: { display: true, text: 'Curah Hujan (mm/jam)', color: '#8aa9be', font: { size: 10 } },
+                suggestedMax: 15,
+                grid: { color: 'rgba(110, 193, 228, 0.1)' },
+                ticks: { color: '#8aa9be', font: { size: 10 } }
               },
               x: {
                 grid: { display: false },
-                ticks: { maxTicksLimit: 12, font: { size: 10 } }
+                ticks: { maxTicksLimit: 12, color: '#8aa9be', font: { size: 10 } }
               }
             }
           }
@@ -949,149 +1176,188 @@
 
       // 3. Jika memilih kecamatan spesifik, sinkronkan kartu & grafik
       if (kec !== "Semua") {
-        const target = dataKecamatanGlobal.find(x => x.nama_kecamatan.toLowerCase() === kec.toLowerCase());
-        if (target) {
-          idKecamatanAktif = target.id;
-          document.getElementById('infoKecTerpilih').textContent = target.nama_kecamatan;
+        const item = dataKecamatanGlobal.find(x => x.nama_kecamatan.toLowerCase() === kec.toLowerCase());
+        if (item) {
+          idKecamatanAktif = item.id;
+          document.getElementById('infoKecTerpilih').textContent = item.nama_kecamatan;
           renderKecamatanList(dataKecamatanGlobal);
-          loadGrafikKecamatan(target.id);
+          loadGrafikKecamatan(item.id);
         }
       }
     });
 
     // ==========================================
-    // 9. EVENT LISTENER: CHECKBOX TOGGLE 5 LAYER
+    // 9. EVENT LISTENERS: CHECKBOX TOGGLE 5 LAYER
     // ==========================================
-    document.getElementById('layerToggleBatas').addEventListener('change', function() {
-      if (this.checked) map.addLayer(layerBatas);
-      else map.removeLayer(layerBatas);
+    document.getElementById('layerToggleBatas').addEventListener('change', (e) => {
+      e.target.checked ? map.addLayer(layerBatas) : map.removeLayer(layerBatas);
     });
-
-    document.getElementById('layerToggleCuaca').addEventListener('change', function() {
-      if (this.checked) map.addLayer(layerCuaca);
-      else map.removeLayer(layerCuaca);
+    document.getElementById('layerToggleCuaca').addEventListener('change', (e) => {
+      e.target.checked ? map.addLayer(layerCuaca) : map.removeLayer(layerCuaca);
     });
-
-    document.getElementById('layerToggleElevasi').addEventListener('change', function() {
-      if (this.checked) map.addLayer(layerElevasi);
-      else map.removeLayer(layerElevasi);
+    document.getElementById('layerToggleElevasi').addEventListener('change', (e) => {
+      e.target.checked ? map.addLayer(layerElevasi) : map.removeLayer(layerElevasi);
     });
-
-    document.getElementById('layerToggleSungai').addEventListener('change', function() {
-      if (this.checked) map.addLayer(layerSungaiBuffer);
-      else map.removeLayer(layerSungaiBuffer);
+    document.getElementById('layerToggleSungai').addEventListener('change', (e) => {
+      e.target.checked ? map.addLayer(layerSungaiBuffer) : map.removeLayer(layerSungaiBuffer);
     });
-
-    document.getElementById('layerTogglePosko').addEventListener('change', function() {
-      if (this.checked) map.addLayer(layerPosko);
-      else map.removeLayer(layerPosko);
+    document.getElementById('layerTogglePosko').addEventListener('change', (e) => {
+      e.target.checked ? map.addLayer(layerPosko) : map.removeLayer(layerPosko);
     });
-
-    document.getElementById('layerToggleAir').addEventListener('change', function() {
-      if (this.checked) map.addLayer(layerAirBersih);
-      else map.removeLayer(layerAirBersih);
+    document.getElementById('layerToggleAir').addEventListener('change', (e) => {
+      e.target.checked ? map.addLayer(layerAirBersih) : map.removeLayer(layerAirBersih);
     });
 
     // ==========================================
-    // 10. TRIGGER MANUAL SYNC BUTTON
+    // 10. SYNC CUACA SEKARANG (TRIGGER CRON SCHEDULER)
     // ==========================================
-    document.getElementById('btnSyncCuacaNow').addEventListener('click', async function() {
-      const btn = this;
-      const originalText = btn.innerHTML;
+    document.getElementById('btnSyncCuacaNow').addEventListener('click', async () => {
+      const btn = document.getElementById('btnSyncCuacaNow');
+      btn.innerHTML = '<span>⏳ Sinkronisasi...</span>';
       btn.disabled = true;
-      btn.innerHTML = "⏳ Menghubungi Open-Meteo...";
 
       try {
-        const res = await fetch('/api/cuaca/sync-manual', { method: 'POST' });
+        const res = await fetch('/api/cuaca/sync-sekarang', { method: 'POST' });
         const json = await res.json();
-        if (res.ok) {
-          alert("✅ Sukses!\nData cuaca 11 kecamatan di Kota Jambi berhasil disinkronkan langsung dari satelit.");
-          loadCuacaKecamatan();
-        } else {
-          throw new Error(json.message);
-        }
+        alert(json.message || "Cuaca 11 kecamatan berhasil disinkronkan dengan Open-Meteo!");
+        await loadCuacaKecamatan();
       } catch (err) {
-        alert("Gagal sync: " + err.message);
+        alert("Gagal sinkronisasi cuaca: " + err.message);
       } finally {
+        btn.innerHTML = '<span>⚡ Sync Cuaca Sekarang</span>';
         btn.disabled = false;
-        btn.innerHTML = originalText;
       }
     });
 
     // ==========================================
-    // 11. CEK RISIKO LOKASI BUTTON
+    // 11. FITUR CEK RISIKO LOKASI SPASIAL
     // ==========================================
-    document.getElementById('btnCekRisiko').addEventListener('click', async function() {
+    document.getElementById('btnCekRisiko').addEventListener('click', async () => {
       const lat = parseFloat(document.getElementById('testLat').value);
       const lng = parseFloat(document.getElementById('testLng').value);
       const box = document.getElementById('resultBox');
 
+      if (isNaN(lat) || isNaN(lng)) {
+        alert("Masukkan Latitude dan Longitude yang valid!");
+        return;
+      }
+
       box.classList.remove('hidden');
-      box.innerHTML = "Menganalisis koordinat via PostGIS ST_Contains...";
+      box.innerHTML = '<span class="text-[#6EC1E4] font-semibold">Memeriksa zona kerawanan banjir PostGIS...</span>';
 
       try {
-        const res = await fetch('/api/peta/cek-lokasi', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ latitude: lat, longitude: lng })
-        });
+        const res = await fetch('/api/cek-lokasi?lat=' + lat + '&lng=' + lng);
         const json = await res.json();
-        box.innerHTML = `<pre class="text-[11px] font-mono text-slate-700 overflow-x-auto">${JSON.stringify(json, null, 2)}</pre>`;
+
+        if (json.success) {
+          const d = json.data;
+          const k = d.kerawanan_banjir || {};
+          const c = d.status_cuaca_terkini || {};
+          const e = d.elevasi || {};
+
+          let badgeWarna = "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+          if (k.tingkat_kerawanan === "Tinggi" || k.tingkat_kerawanan === "Sangat Tinggi") {
+            badgeWarna = "bg-rose-500/20 text-rose-300 border border-rose-500/30";
+          } else if (k.tingkat_kerawanan === "Sedang") {
+            badgeWarna = "bg-amber-500/20 text-amber-300 border border-amber-500/30";
+          }
+
+          box.innerHTML = `
+            <div class="space-y-1.5 font-sans">
+              <div class="flex items-center justify-between border-b border-[#6EC1E4]/20 pb-1">
+                <span class="font-bold text-white">📍 Hasil Analisis Spasial:</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${badgeWarna}">
+                  ${k.tingkat_kerawanan || 'Belum Terpetakan'}
+                </span>
+              </div>
+              <div>Wilayah: <b class="text-white">${d.kelurahan || '-'}, Kec. ${d.kecamatan || '-'}</b></div>
+              <div>Kelas Elevasi: <b class="text-[#6EC1E4]">${e.kelas_elevasi || '-'} (${e.rata_elevasi_mdpl || '-'} mdpl)</b></div>
+              <div>Cuaca Saat Ini: <b>${c.curah_hujan_terkini || '0.00'} mm/jam (${c.status_peringatan || 'Normal'})</b></div>
+              <div>Faktor Dominan: <b class="text-amber-300">${k.faktor_dominan || 'Jarak Sungai Batanghari'}</b></div>
+              <div class="text-[10px] text-slate-400 mt-1 italic">${k.rekomendasi_tindakan || 'Tetap waspada.'}</div>
+            </div>
+          `;
+
+          // Tandai lokasi dengan pin animasi di peta
+          L.circleMarker([lat, lng], {
+            radius: 10,
+            fillColor: '#10b981',
+            color: '#ffffff',
+            weight: 3,
+            opacity: 1,
+            fillOpacity: 1
+          }).addTo(map).bindPopup(`<b>📍 Lokasi yang Anda Cek</b><br>${d.kelurahan || ''}, ${d.kecamatan || ''}`).openPopup();
+
+          map.flyTo([lat, lng], 14);
+
+        } else {
+          box.innerHTML = `<span class="text-rose-400 font-bold">Titik berada di luar wilayah Kota Jambi.</span>`;
+        }
       } catch (e) {
-        box.innerHTML = `<span class="text-rose-600 font-bold">Error: ${e.message}</span>`;
+        box.innerHTML = `<span class="text-rose-400 font-bold">Error: ${e.message}</span>`;
       }
     });
 
     // ==========================================
-    // 12. RUTE EVAKUASI PGROUTING BUTTON
+    // 12. FITUR HITUNG RUTE EVAKUASI PEKA RISIKO (pgRouting)
     // ==========================================
-    document.getElementById('btnHitungRute').addEventListener('click', async function() {
+    document.getElementById('btnHitungRute').addEventListener('click', async () => {
       const lat = parseFloat(document.getElementById('testLat').value);
       const lng = parseFloat(document.getElementById('testLng').value);
       const box = document.getElementById('resultBox');
 
+      if (isNaN(lat) || isNaN(lng)) {
+        alert("Masukkan Latitude dan Longitude yang valid!");
+        return;
+      }
+
       box.classList.remove('hidden');
-      box.innerHTML = "Menghitung rute evakuasi teraman via pgRouting...";
+      box.innerHTML = '<span class="text-[#6EC1E4] font-semibold">Menghitung rute peka risiko ke posko terdekat via pgRouting...</span>';
 
       try {
-        const res = await fetch('/api/evakuasi/rute', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ start_lat: lat, start_lng: lng })
-        });
+        const res = await fetch(`/api/evakuasi/rute?lat=${lat}&lng=${lng}`);
         const json = await res.json();
-        const posko = json.data.posko_tujuan;
-        const ringkasan = json.data.ringkasan_rute;
 
-        box.innerHTML = `
-          <div class="space-y-1.5 font-sans">
-            <div class="font-bold text-blue-700 text-xs flex items-center gap-1">
-              <span>🏕️</span> Posko: ${posko.nama_posko}
-            </div>
-            <div class="text-[11px] text-slate-600">${posko.alamat}</div>
-            <div class="text-[11px] text-slate-500">Kontak: <b>${posko.kontak_darurat || 'BPBD Jambi'}</b></div>
-            <hr class="my-1 border-slate-200">
-            <div class="grid grid-cols-2 gap-1 text-[11px] font-mono text-slate-700">
-              <div>Jarak: <b>${ringkasan.total_jarak_meter} m</b></div>
-              <div>Motor: <b>${ringkasan.estimasi_kendaraan_menit} menit</b></div>
-            </div>
-            <div class="text-[10px] text-emerald-700 font-semibold bg-emerald-50 p-1 rounded border border-emerald-200 mt-1">
-              ✅ ${ringkasan.status_keamanan}
-            </div>
-          </div>
-        `;
+        if (json.success) {
+          const rute = json.data;
+          const posko = rute.posko_tujuan;
 
-        if (json.data && json.data.geojson_rute) {
-          if (ruteLayer) map.removeLayer(ruteLayer);
+          box.innerHTML = `
+            <div class="space-y-1.5 font-sans">
+              <div class="flex items-center justify-between border-b border-[#6EC1E4]/20 pb-1">
+                <span class="font-bold text-white">🚗 Jalur Evakuasi Ditemukan!</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-[#6EC1E4] border border-[#6EC1E4]/30">
+                  ${rute.jarak_total_km} km (${rute.estimasi_waktu_menit} mnt)
+                </span>
+              </div>
+              <div>Posko Tujuan: <b class="text-rose-400">🏕️ ${posko.nama_posko}</b></div>
+              <div>Alamat Posko: <span class="text-slate-300">${posko.alamat}</span></div>
+              <div>Sisa Kapasitas: <b class="text-emerald-400">${posko.kapasitas_tersisa} Jiwa</b></div>
+              <div>Kontak Darurat: <b class="text-[#6EC1E4]">${posko.kontak_darurat}</b></div>
+              <div class="text-[10px] text-[#6EC1E4] mt-1 bg-white/5 p-1.5 rounded-lg border border-white/10">
+                ${rute.status_keamanan}
+              </div>
+            </div>
+          `;
+
+          // Gambar Rute di Peta
+          if (ruteLayer) {
+            map.removeLayer(ruteLayer);
+          }
           ruteLayer = L.layerGroup();
 
-          // 1. LineString Rute (Biru tebal dengan outline)
-          const line = L.geoJSON(json.data.geojson_rute, {
-            style: { color: '#2563eb', weight: 6, opacity: 0.9, lineCap: 'round', lineJoin: 'round' }
+          // 1. Line String Rute (Garis Biru Neon)
+          const line = L.geoJSON(rute.geojson, {
+            style: {
+              color: '#38bdf8',
+              weight: 6,
+              opacity: 0.95,
+              dashArray: '8, 4'
+            }
           });
           ruteLayer.addLayer(line);
 
-          // 2. Marker Titik Awal Pengguna (Pin Hijau)
+          // 2. Marker Titik Awal (Pin Hijau)
           const startMarker = L.circleMarker([lat, lng], {
             radius: 8,
             fillColor: '#10b981',
@@ -1114,10 +1380,10 @@
             fillOpacity: 1
           }).bindPopup(`
             <div class="p-1 font-sans">
-              <b class="text-xs text-rose-700">🏕️ ${posko.nama_posko}</b>
-              <div class="text-[11px] text-slate-600 mt-0.5">${posko.alamat}</div>
-              <div class="text-[10px] text-slate-500 mt-1">Sisa Kapasitas: <b>${posko.kapasitas_tersisa} Jiwa</b></div>
-              <div class="text-[10px] text-blue-600 font-semibold mt-0.5">📞 ${posko.kontak_darurat}</div>
+              <b class="text-xs text-rose-400">🏕️ ${posko.nama_posko}</b>
+              <div class="text-[11px] text-slate-300 mt-0.5">${posko.alamat}</div>
+              <div class="text-[10px] text-slate-400 mt-1">Sisa Kapasitas: <b class="text-emerald-400">${posko.kapasitas_tersisa} Jiwa</b></div>
+              <div class="text-[10px] text-[#6EC1E4] font-semibold mt-0.5">📞 ${posko.kontak_darurat}</div>
             </div>
           `);
           ruteLayer.addLayer(endMarker);
@@ -1126,7 +1392,7 @@
           map.fitBounds(line.getBounds(), { padding: [60, 60] });
         }
       } catch (e) {
-        box.innerHTML = `<span class="text-rose-600 font-bold">Error: ${e.message}</span>`;
+        box.innerHTML = `<span class="text-rose-400 font-bold">Error: ${e.message}</span>`;
       }
     });
 
@@ -1199,6 +1465,33 @@
     loadSungaiDanBuffer();
     loadPosko("Semua");
     loadAirBersih("Semua");
+
+    // URL Query Parameter Support (untuk interaksi dari React frontend)
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramKec = urlParams.get('kecamatan');
+    const paramLat = urlParams.get('lat');
+    const paramLng = urlParams.get('lng');
+    if (paramLat && paramLng) {
+      document.getElementById('testLat').value = paramLat;
+      document.getElementById('testLng').value = paramLng;
+      setTimeout(() => {
+        document.getElementById('btnCekRisiko')?.click();
+      }, 800);
+    }
+    if (paramKec) {
+      setTimeout(() => {
+        const sel = document.getElementById('selectKecamatanFilter');
+        if (sel) {
+          for (let i = 0; i < sel.options.length; i++) {
+            if (sel.options[i].value.toLowerCase() === paramKec.toLowerCase()) {
+              sel.selectedIndex = i;
+              sel.dispatchEvent(new Event('change'));
+              break;
+            }
+          }
+        }
+      }, 700);
+    }
   </script>
 </body>
 </html>
